@@ -58,6 +58,10 @@ Rscript app.R
 | Functions | Description | Input | Output | 
 | --------- | ----------- | ----- | ------ |
 | reading_inputs() | Filters the pre-ranked input lists. The resulting data frame consists of the two columns from the input file and a ranking variable to index the genes. | Columns of the pre-ranked list | Ordered data frame |
+| assessing_overlapping() | Makes use of a binomial variable to assess if a gene is present in the pre-ranked list and in the gene set (overlaps) | Data frame from reading_inputs() function | Updated data frame |
+| computing_sk_ES() | Computes the Enrichment Score (ES) | Data frame from assessing_overlap() and number of overlapping genes | Updated data frame |
+| phenotype_permutation() | Use of random permutation methods to generate a null distribution to assess the statistical significance of the ES | Data frame from computing_sk_ES() and number of permutations to be completed | Vector with the stored Maximum Enrichment Scores (MES) of each permutation |
+| OurGSEAplus() | Main function call to execute GSEA | Original data frame from reading_inputs() and the input gene set | The final updated data frame from computing_sk_ES() and the MES rank (order) and the MES value (score) |
 
 
 ### Inputs Data Formats

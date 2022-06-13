@@ -9,19 +9,14 @@
 ##############################
 
 # Loading the required libraries
-library(ggplot2) # Library to draw the plots
-library(shiny) # Basic library to make the application work
-library(dplyr)
-library(shinydashboard) # Library to define a structure to the interface
-library(devtools)
-library(shinyFeedback)
-library(progress)
-library(rmarkdown) # Library to create the report
-library(knitr) # Library to create the report
+library(ggplot2)
+library(shiny) 
+library(shinydashboard)
+library(knitr) 
 library(data.table)
-library(cowplot) 
-library(rintrojs) # Library to create the introductory help to the users
+library(rintrojs) 
 library(shinyWidgets)
+library(rmarkdown) 
 
 
 
@@ -46,7 +41,7 @@ ui <- shinyUI(dashboardPage(
                                notificationItem(text = "Enables the user to configure how graphs will be displayed.", icon = icon("chart-area")),
                                notificationItem(text = "Export the outcome of the analysis.", icon = icon("download")),
                                notificationItem(text = strong("All changes in the selection criteria need to be confirmed clicking in the confirm button.", icon = icon("alert", lib = "glyphicon")))),
-                  tags$li(a(strong("About GSEA+"), height = 40, href = "Add link to GitHub", title = "", target = "_blank"),
+                  tags$li(a(strong("About GSEA+"), height = 40, href = "https://github.com/avarassanchez/GSEAplus", title = "", target = "_blank"),
                           class = "dropdown")),
   
   # Application sidebar

@@ -1,0 +1,323 @@
+---
+title: GSEA+
+output: html_document
+params:
+  # Parameters for the plots
+  add_title: NA
+  description: NA
+  title_size: NA
+  title_position: NA
+  color_panel: NA
+  color_plot: NA
+  color_title: NA
+  color: NA
+  color_dashed: NA
+  curve_size: NA
+  add_mes: NA
+  add_0: NA
+  add_panel2: NA
+  color_panel2: NA
+  color_search_gene: NA
+  add_panel3: NA
+  color_exp_line: NA
+  color_exp: NA
+  red_blue: NA
+  
+  # Data
+  gene_list: NA
+  candidate_list: NA
+  num_prerank: NA
+  num_geneset: NA
+  names_prerank: NA
+  names_geneset: NA
+  selection_genes: NA
+  
+  # Tables
+  important_values: NA
+  important_statistics: NA
+  
+  nums_plots: num_prerank * num_geneset
+  
+  # pos_plots: NA
+  # neg_plots: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r functions, include=FALSE}
+# Takes the names and values of the preranked list (1st and 2nd column)
+# Returns the dataframe with the rank order
+reading_inputs <- function(names, values){
+  
+  # Creating a data frame
+  data <- data.frame(
+    names,
+    values
+  )
+  
+  data <- data[order(data$values),] # Ordering the data frame by the value of expression
+  
+  ranking <- c(length(data$names):1)
+  data["ranking"] <- ranking
+  
+  data <- data[order(data$ranking),] # Order the data frame by the ranking order
+  
+  return(data)
+} # Step 0
+
+# Takes the dataframe and the gene set
+# Returns the updated dataframe and the sum of the overlapping genes
+assessing_overlaping <- function(data, candidate_list){
+  
+  indicator_function <- c() 
+  sum_in_set = 0 # Keep track of the total rank metric for the genes overlapping
+  
+  for(i in data$ranking){ 
+    if(data$names[i] %in% candidate_list){
+      indicator_function <- c(indicator_function, 1) 
+      sum_in_set = sum_in_set + abs(data$values[i])
+    } else{
+      indicator_function <- c(indicator_function, 0) 
+    }
+  }
+  
+  data["indicator"] <- indicator_function # Add vector as a new column of the dataframe
+  
+  # Get the counts of overlapping genes
+  # hit <- sum(with(data, indicator == 1)) 
+  # misses <- sum(with(data, indicator == 0)) 
+  
+  # Create a list to allow multiple returns
+  my_list <- list("data" = data, "sum_in_set" = sum_in_set)
+  
+  return(my_list)
+} # Step 1
+
+# Takes the dataframe and the sum of the overlapping genes
+# Returns the updated dataframe and the MES rank 
+computing_sk_ES <- function(data, sum_in_set){
+  
+  misses <- sum(with(data, indicator == 0))
+  
+  running_ES <- c()
+  
+  ES = 0
+  MES_value = 0 
+  
+  for(i in data$ranking){ 
+    if(data$indicator[i] == 1){
+      ES = ES + (abs(data$values[i]) / sum_in_set)
+      running_ES <- c(running_ES, ES)
+    } else {
+      ES = ES - (1 / misses)
+      running_ES <- c(running_ES, ES)
+    }
+    if(abs(ES) > abs(MES_value)){ 
+      MES_value = ES
+    }
+  }
+  
+  data["running_ES"] <- running_ES 
+  
+  MES_rank <- which(data$running_ES == MES_value) # To know the ranking of the MES
+  
+  my_list <- list("data" = data, "MES_rank" = MES_rank, "MES_value" = MES_value)
+  
+  return(my_list)
+} # Step 2 and 3
+
+# Takes as input the dataframe and the number of permutations to be completed
+# Returns a vector with the MES of each permutation
+phenotype_permutation <- function(data_permutation, permutation){
+  
+  # Create a copy of the dataframe that contains the names, values and the indicator
+  data_permuted <- data_permutation[,1:2]
+  data_permuted['indicator'] <- data_permutation[,4]
+  
+  ES_null <- c() # Vector to keep the MES computed in each permutation
+  pos_null <- c()
+  neg_null <- c()
+  
+  for(i in 1:permutation){ # (5.3)
+    
+    # We make the permutation over the values
+    # In this way we do not need to assess the overlaping
+    data_permuted$values <- sample(data_permuted$values) # The sample() function allows to perform random permutations 
+    
+    # We need to get the absolute sum of the rank metric for those genes that overlap
+    permuted_sum_in_set <- sum(abs(data_permuted[which(data_permuted$indicator == 1), 2]))
+    
+    # We directly make the ranking of the new dataframe
+    data_permuted <- data_permuted[order(data_permuted$values),] # Ordering the data frame by the value of expression
+    data_permuted["ranking"] <- c(length(data_permuted$names):1)
+    data_permuted <- data_permuted[order(data_permuted$ranking),] # Order the data frame by the ranking order
+    
+    misses <- sum(with(data_permuted, indicator == 0))
+    
+    ES = 0
+    MES_value = 0 
+    
+    for(i in data_permuted$ranking){ 
+      if(data_permuted$indicator[i] == 1){
+        ES = ES + abs(data_permuted$values[i]) / permuted_sum_in_set
+      } else {
+        ES = ES - (1 / misses)
+      }
+      if(abs(ES) > abs(MES_value)){ 
+        MES_value = ES
+      }
+    }
+    
+    ES_null <- c(ES_null, MES_value)
+    
+    if(MES_value > 0){
+      pos_null <- c(pos_null, MES_value)
+    } else{
+      neg_null <- c(neg_null, MES_value)
+    }
+  }
+  
+  mylist <- list("ES_null" = ES_null, "pos_null" = pos_null, "neg_null" = neg_null)
+  
+  return(mylist)
+} # Step 5.1
+
+# Main function call
+# Returns the final dataframe, the MES rank (order) and the MES value (score)
+OurGSEA_plus <- function(data, current_candidate){
+  
+  overlap <- assessing_overlaping(data, current_candidate) # Step 1
+  
+  data_sk_ES <- computing_sk_ES(overlap$data, overlap$sum_in_set) # Step 2 and 3
+  
+  mylist <- list("data" = data_sk_ES$data, "MES_rank" = data_sk_ES$MES_rank, "MES_value" = data_sk_ES$MES_value)
+
+  return(mylist)
+}
+```
+
+```{r GSEA_execution, include=FALSE}
+count = 1
+null_dist <- c()
+permutation_num = 1000 # Defining the number of times we will make the random sampling
+
+plots_list <- list()
+null_list <- list()
+
+for(data_frame in params$gene_list){ # Traverse all the input gene lists
+  for(list in 1:length(params$candidate_list)){ # Traverse all the candidate gene lists
+    
+    current_candidate <- c(params$candidate_list[list]) # Select a candidate gene list
+    current_candidate <- current_candidate[[1[1]]] # Change the format
+    
+    GSEA <- OurGSEA_plus(data_frame, current_candidate) # Call to perform all GSEA functions
+
+    count = count + 1
+    
+    ########################
+    # Drawing the GSEA plot
+    ########################
+    
+    min <- min(GSEA$data$running_ES)
+    max <- max(GSEA$data$running_ES)
+            
+    GSEA_plot <- ggplot() +
+            geom_line(data = GSEA$data, mapping = aes(x = ranking, y = running_ES), color = params$color, size = params$curve_size) + 
+            theme(
+              panel.background = element_rect(fill = params$color_panel),
+              plot.background = element_rect(fill = params$color_plot),
+              plot.title = element_text(color = params$color_title, size = params$title_size, face = "bold", hjust = params$title_position)) +
+            labs(x = "Rank in Ordered Dataset", y = "Running Enrichment Score", caption = count, color = "Comparison Number") 
+    
+    plots_list <- list(plots_list, GSEA_plot) # Save all the plots in a single list
+    
+    ################################
+    # Drawing the NULL distribution
+    ################################
+    
+    ES_nulldist <- phenotype_permutation(GSEA$data, permutation_num) # Call to perform the phenotype permutation
+    null_dist <- c(null_dist, list(ES_nulldist))
+    
+    permutation <- null_dist$ES_null
+    null <- data.frame(permutation)
+    
+    NULL_plot <- ggplot(data = null, mapping = aes(x = permutation)) + geom_histogram(bins = 30) + theme_classic() +
+      geom_vline(data = GSEA$data, mapping = aes(xintercept = GSEA$MES_value), linetype = "dashed", color = params$color_dashed1) +
+      labs(x = "ES", y = "P(ES)", title = "Random ES Distribution", caption = id) +
+      theme(
+        panel.background = element_rect(fill = params$color_panel1),
+        plot.background = element_rect(fill = params$color_plot1),
+        plot.title = element_text(color = params$color_title1, face = "bold", hjust = 0.5))
+    
+    null_list <- list(null_list, NULL_plot)
+  }
+}
+```
+
+## 1. Pipeline
+**STEP 0: Processing the input files**
+Initially a pre-ranked list and a gene list are used as inputs. The pre-ranked files are necessarily loaded by the user in .rnk format. In the case of the gene list, the user can use its own gene list, loaded in .tsv, .csv or .txt, or select one of the available (Hallmark collection). To assure a correct execution both inputs are pre-processed. Particularly, the GSEA+ application manages multiple input comparisons, therefore more than one pre-ranked list and gene set can be uploaded to be executed.
+
+**STEP 1: Enrichment Score (ES) computation.**
+To compute the ES it is necessary to firstly assess the overlap between genes in both inputs. In this intermediate step we attempt to compare the input files by defining two sets: genes in both lists (hit) and genes not present in the gene list (misses). To do so, we traverse all the genes in the pre-ranked gene set while updating a binomial variable that tracks the overlapping between inputs: 1 if present and 0 if absent. 
+To correctly compute the Enrichment Score (ES) we need to consider, as stated by Subramanian et al., that the magnitude of the increment depends on the correlation of the gene with the phenotype.
+We use a running sum to keep track of the ES computations. In this sense, the ES value will increase for those genes overlapping and decrease otherwise, allowing to draw the enrichment curve. The value that we subtract is fixed, and is defined as one divided by the number of genes that do not overlap. However, the addition score is dependent on the expression value of each of the overlapping genes: it corresponds to the absolute value of the differential expression of a gene divided by the sum of the expression values of all the overlapping genes.
+
+**STEP 2: Drawing the GSEA plot.**
+The classical GSEA plot is formed by three panels. The top panel corresponds to the enrichment profile, and the shape of the ES relates to the arrangement of the genes in the gene set compared with the whole expression set. The higher absolute ES matches the maximum ES (MES) and allows to delimit the leading-edge subset. The middle panel shows where the gene set members appear in the ranked gene list. The bottom panel represents the ranked list metric in a curve, which measures the gene’s correlation with a phenotype.
+
+**STEP 3: Significance testing.**
+GSEA employs permutation methods (= re-sampling) to generate a null distribution for each gene set. We used a phenotype permutation to randomly swap the sample labels and re-calculate each time the ES. With such approach we obtain how widely the ES varies and how often two groups are effectively the same. Therefore, step 1 is completed as many times as number of permutations. In each iteration the MES of the sampled data is stored to create a plot of the corresponding ES null distribution. 
+From the null distribution the p-values is computed. The p-value is the probability of observing a statistic more extreme under the null hypothesis. To account for multiple hypotheses the significance level is adjusted by normalizing the ES (NES) for the gene set size. A positive NES represents that the genes in the gene set are mostly placed at the top of the pre-ranked list, and the opposite situation for a negative NES. The proportion of false positives is further controlled by calculating the false discovery rate (FDR) q-value. 
+
+## 2. Exploring the input data
+In order to run a GSEA analysis a preranked list and a gene set need to be selected. For this execution a total of `params$num_prerank` pre-ranked lists and `params$num_geneset` gene set were selected to run GSEA. 
+
+Loaded files:
+Pre-ranked lists: `params$names_prerank`
+Gene sets: `params$names_geneset`
+
+## 3. Exploring the outputs
+This section will display the classical GSEA plots and their summary tables associated. Both results will be displayed for all the possible comparisons between the selected input files (all-to-all comparisons). The null ES distribution plot will be also incorporated to assess the significance. The actual (also called observed) MES (of each scenario) is also displayed in the plot.
+
+### 3.1 Classical GSEA charts
+A total of `params$num_plots` were generated. Each comparison is labeled with a number. This number will allow us to identificate the results of each comparison.
+
+```{r plots, include=FALSE}
+for(plot in plots_list){
+  print(plot)
+}
+```
+
+### 3.2. Summary table
+The more important metrics and statistics have been collected in the table below. Each row presents the data of a particular comparison. The columns' guidelines are the following:
+
+Col. 1: Displays the label used to identificate each of the comparisons between a pre-ranked list and a gene set. It is linked to the legend of the GSEA plot.
+Col. 2|3: Contains the name of the pre-ranked lists and the gene sets.
+Col. 4|5: Total sum of genes in each of the pre-ranked lists and gene sets.
+Col. 6: Indicates the up-regulated class. Positive if enrichment in the left, and negative otherwise.
+Col. 7: Gives the values of the Maximum Enrichment Score (MES). The MES value indicates the maximum deviance of the ES from 0.
+Col. 8: Displays the rank were the MES is located.")
+Col. 9: Total sum of genes that are present in both input files. Correspond to the number of lines vertically displayed in the plot.
+Col. 10: Total sum of genes that form the leading-edge subset. The leading-edge subset is defined by the MES. If positive enrichment we will consider those genes before the MES, and if negative enrichment the genes after the MES will be considered.
+       
+```{r summary_table, include=FALSE}
+params$important_values
+```
+
+### 3.3. Significance estimation
+To evaluate the significance a permutation method is completed iterating 1000 times. The maximum ES (MES) of each iteration is stored and displayed in a histogram. Additionally, the observed MES (i.e. the MES computed from the original data without randomization) is also displayed as a dashed line. The null ES distributions of each of the permutations are listed below.
+
+```{r null_plots, include=FALSE}
+for(null in null_list){
+  print(null)
+}
+```
+
+To numerically assess the significance of the obtained results the P-values, NES, FDR (q-value) and the TAGS, LIST and SIGNAL percentages were computed and collected in the following table.
+
+```{r summary_stats, include=FALSE}
+params$important_statistics
+```

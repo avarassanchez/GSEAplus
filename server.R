@@ -9,19 +9,14 @@
 ##############################
 
 # Loading the required libraries
-library(ggplot2) # Library to draw the plots
-library(shiny) # Basic library to make the application work
-library(dplyr)
-library(shinydashboard) # Library to define a structure to the interface
-library(devtools)
-library(shinyFeedback)
-library(progress)
-library(rmarkdown) # Library to create the report
-library(knitr) # Library to create the report
+library(ggplot2)
+library(shiny) 
+library(shinydashboard)
+library(knitr) 
 library(data.table)
-library(cowplot) 
-library(rintrojs) # Library to create the introductory help to the users
+library(rintrojs) 
 library(shinyWidgets)
+library(rmarkdown) 
 
 
 

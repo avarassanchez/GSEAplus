@@ -26,7 +26,7 @@ reading_inputs <- function(names, values){
 
 # Takes the dataframe and the gene set
 # Returns the updated dataframe and the sum of the overlapping genes
-assessing_overlaping <- function(data, candidate_list){
+assessing_overlapping <- function(data, candidate_list){
   
   indicator_function <- c() 
   sum_in_set = 0 # Keep track of the total rank metric for the genes overlapping
@@ -100,7 +100,7 @@ phenotype_permutation <- function(data_permutation, permutation){
   for(i in 1:permutation){ # (5.3)
     
     # We make the permutation over the values
-    # In this way we do not need to assess the overlaping
+    # In this way we do not need to assess the overlapping
     data_permuted$values <- sample(data_permuted$values) # The sample() function allows to perform random permutations 
     
     # We need to get the absolute sum of the rank metric for those genes that overlap
@@ -145,7 +145,7 @@ phenotype_permutation <- function(data_permutation, permutation){
 # Returns the final dataframe, the MES rank (order) and the MES value (score)
 OurGSEA_plus <- function(data, current_candidate){
   
-  overlap <- assessing_overlaping(data, current_candidate) # Step 1
+  overlap <- assessing_overlapping(data, current_candidate) # Step 1
   
   data_sk_ES <- computing_sk_ES(overlap$data, overlap$sum_in_set) # Step 2 and 3
   

@@ -9,12 +9,6 @@ library(rintrojs)
 library(shinyWidgets)
 library(rmarkdown) 
 
-# library(dplyr)
-# library(devtools)
-# library(shinyFeedback)
-# library(progress)
-# library(cowplot) 
-
 # load module functions
 source("GSEAfunctions.R")
 # load ui elements

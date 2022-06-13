@@ -57,7 +57,7 @@ Rscript app.R
 ### List of Commands
 | Functions | Description | Input | Output | 
 | --------- | ----------- | ----- | ------ |
-| reading_inputs() |  | Columns of the pre-ranked list | Ordered data frame |
+| reading_inputs() | Filters the pre-ranked input lists. The resulting data frame consists of the two columns from the input file and a ranking variable to index the genes. | Columns of the pre-ranked list | Ordered data frame |
 
 
 ### Inputs Data Formats

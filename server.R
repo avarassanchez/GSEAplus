@@ -306,23 +306,23 @@ server <- shinyServer(function(input, output, session) {
           
           GSEA <- OurGSEA_plus(data_frame, current_candidate) # Call to perform all GSEA functions
           
-          for(mes in ES_nulldist$ES_null){
+          for(mes in permutation_multi()[[count]]$ES_null){
             if(mes > 0){
-              NES <- mes / mean(ES_nulldist$pos_null)
+              NES <- mes / mean(permutation_multi()[[count]]$pos_null)
             } else{
-              NES <- abs(mes) / mean(ES_nulldist$neg_null)
+              NES <- abs(mes) / mean(permutation_multi()[[count]]$neg_null)
             }
             nes_perm <- c(nes_perm, NES)
           }
           
           if(GSEA$MES_value > 0){ # Considering positive enrichment
             leading_edge <- GSEA$data[GSEA$data$ranking <= GSEA$MES_rank, ]
-            NES <- GSEA$MES_value / mean(permutation_multi()[[count]]$pos_null)
+            observed_NES <- GSEA$MES_value / mean(permutation_multi()[[count]]$pos_null)
             nom_pval <- sum(permutation_multi()[[count]]$ES_null >= GSEA$MES_value) / 1000
             FDR <- (sum(nes_perm > observed_NES)) / 1000
           } else{ # Considering negative enrichment
             leading_edge <- GSEA$data[GSEA$data$ranking >= GSEA$MES_rank, ]
-            NES <- abs(GSEA$MES_value) / mean(permutation_multi()[[count]]$neg_null)
+            observed_NES <- abs(GSEA$MES_value) / mean(permutation_multi()[[count]]$neg_null)
             nom_pval <- sum(permutation_multi()[[count]]$ES_null <= GSEA$MES_value) / 1000
             FDR <- (sum(nes_perm < observed_NES)) / 1000
           }
@@ -333,7 +333,7 @@ server <- shinyServer(function(input, output, session) {
           
           stat_values$Comparison <- c(stat_values$Comparison, count)
           stat_values$Pvalue <- c(stat_values$Pvalue, nom_pval)
-          stat_values$NES <- c(stat_values$NES, NES)
+          stat_values$NES <- c(stat_values$NES, observed_NES)
           stat_values$FDR_Qvalue <- c(stat_values$FDR_Qvalue, FDR)
           stat_values$TAGS <- c(stat_values$TAGS, t * 100)
           stat_values$LIST <- c(stat_values$LIST, l * 100)
@@ -616,12 +616,12 @@ server <- shinyServer(function(input, output, session) {
           
           if(GSEA$MES_value > 0){ # Considering positive enrichment
             leading_edge <- GSEA$data[GSEA$data$ranking <= GSEA$MES_rank, ]
-            NES <- GSEA$MES_value / mean(permutation_multi()[[count]]$pos_null)
+            observed_NES <- GSEA$MES_value / mean(permutation_multi()[[count]]$pos_null)
             nom_pval <- sum(permutation_multi()[[count]]$ES_null >= GSEA$MES_value) / 1000
             FDR <- (sum(nes_perm > observed_NES)) / 1000
           } else{ # Considering negative enrichment
             leading_edge <- GSEA$data[GSEA$data$ranking >= GSEA$MES_rank, ]
-            NES <- abs(GSEA$MES_value) / mean(permutation_multi()[[count]]$neg_null)
+            observed_NES <- abs(GSEA$MES_value) / mean(permutation_multi()[[count]]$neg_null)
             nom_pval <- sum(permutation_multi()[[count]]$ES_null <= GSEA$MES_value) / 1000
             FDR <- (sum(nes_perm < observed_NES)) / 1000
           }
@@ -649,6 +649,17 @@ server <- shinyServer(function(input, output, session) {
       }
       
       for(i in 1:length(data_multi())){
+        
+        # x_text = nrow(data_multi()[[1]]$data)
+        # y_text = round(max(abs(data_multi()[[1]]$data$running_ES)), 2)
+        # text1 = paste("NES: ", round(NES, 2))
+        # text2 = paste("P-value: ", nom_pval)
+        # text3 = paste("FDR (q-value): ", FDR)
+        
+        # GSEA_plot <- GSEA_plot + annotate(geom = "text", x = (x_text - 5000), y = y_text, label = text1, size = 3, color = i+1) +
+          # annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.05), label = text2, size = 3, color = i+1) +
+          # annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.10), label = text3, size = 3, color = i+1)
+        
         # Search genes option
         if(is.null(input$selection_genes) == FALSE){
           genes <- input$selection_genes

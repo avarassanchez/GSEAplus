@@ -47,7 +47,7 @@ library(rintrojs)
 library(shinyWidgets)
 library(rmarkdown) 
 ```
-Executing GSEA+ using R-Studio is very straight format: open the app.R and click on Run App. To compile GSEA+ through the terminal it is necessary to access the GSEAplus directory and execute the command below. If no errors, a link will be displayed with the same format as: Listening on http://XXX.X.X.X:YYYY
+Executing GSEA+ using R-Studio is very straight format: open the app.R and click on Run App. To compile GSEA+ through the terminal it is necessary to access the GSEAplus directory and execute the command below. If no errors, a link will be displayed with the same format as: "Listening on http://XXX.X.X.X:YYYY"
 ```
 Rscript app.R
 ```

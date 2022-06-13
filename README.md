@@ -33,7 +33,10 @@ https://github.com/avarassanchez/GSEAplus
   * h.all.v7.5.1.symbols.gmt: Hallmark gene set collection from MSigDB (May 2022).
   * mart_export.txt: List of orthologous human-mouse nomenclature translator.
 
-### How to run GSEA+
+### How to Run GSEA+ 
+GSEA+ can be executed locally from R-Studio or by command-line, or using a browser.
+
+### List of Commands
 
 ### Data Formats
 2 input files are necessary to execute GSEA: pre-ranked file and gene set. The pre-ranked list are obtained from the RNA-seq pipeline. Consist of a two-column format containing the gene symbol and the gene rank metric (from differential expression analysis with softwares such as DESeq2). The gene set consist of a gene symbol lists related to a particular category. Can be loaded from two different sources: users' own signatures or an already available gene set collection. These approaches enable a more precise or exploratory search, respectively. The Hallmarks collection from The Molecular Signatures Database (MSigDB) has been included containing a total of 50 gene sets. 

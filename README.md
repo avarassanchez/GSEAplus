@@ -51,7 +51,7 @@ Executing GSEA+ using R-Studio is very straight format: open the app.R and click
 ```
 Rscript app.R
 ```
-If no errors, a link will be displayed with a format as:
+If no errors, a link will be displayed with the same format as:
 ```
 Listening on http://XXX.X.X.X:YYYY
 ```

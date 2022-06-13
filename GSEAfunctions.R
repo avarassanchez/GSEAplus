@@ -165,7 +165,7 @@ OurGSEA_plus <- function(data, current_candidate){
 ###
 
 # Loading the file
-hallmark_data_human <- read.csv("h.all.v7.5.1.symbols.gmt", sep = "", header = FALSE)
+hallmark_data_human <- read.csv("/Data/h.all.v7.5.1.symbols.gmt", sep = "", header = FALSE)
 
 transposed_data_human <- t(hallmark_data_human) # Change orientation of the original table (put rows as columns, and the other way round)
 transposed_data_human <- as.data.frame(transposed_data_human)# Put the previous output as a dataframe. This table will have the categories as columns and the genes as rows
@@ -184,7 +184,7 @@ for(i in 1:ncol(transposed_data_human)){
 
 # Load the translator table
 # 2 columns file that contains genes correspondence between human and mouse
-translator <- read.table("mart_export.txt", sep = ",", header = TRUE)
+translator <- read.table("/Data/mart_export.txt", sep = ",", header = TRUE)
 
 # Remove those rows that do not have a translator in mouse
 filtered_translator <- translator[-which(translator$Gene.name == ""),]

@@ -18,10 +18,10 @@ Selection of most relevant GSEA+ functionalities:
 ## 2. Setup
 
 GSEA+ source code is entirely written in R. The latest full distribution release can be downloaded from GitHub:
-
+```
 https://github.com/avarassanchez/GSEAplus
-
-List of available archives and folders:
+```
+### List of Files and Folders
 * README: Description of the project and guidelines to run GSEA+.
 * server.R: Server function definition of R-Shiny application.
 * ui.R: Interface definition of R-Shiny application.
@@ -32,3 +32,5 @@ List of available archives and folders:
   * QuickGO_Ossification.csv: Gene set file to use as part of the demo.
   * h.all.v7.5.1.symbols.gmt: Hallmark gene set collection from MSigDB (May 2022).
   * mart_export.txt: List of orthologous human-mouse nomenclature translator.
+
+### How to run GSEA+

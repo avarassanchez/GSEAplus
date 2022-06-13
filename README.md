@@ -28,7 +28,7 @@ List of available archives and folders:
 * GSEAfunctions: Definition of the functions required to run a GSEA analysis. 
 * app.R: Call to the two-files R-Shiny application.
 * /Data:
-  * ES_NP_preranked_paired.rnk:
-  * QuickGO_Ossification.csv:
-  * h.all.v7.5.1.symbols.gmt:
-  * mart_export.txt:   
+  * ES_NP_preranked_paired.rnk: Pre-ranked file to use as part of the demo.
+  * QuickGO_Ossification.csv: Gene set file to use as part of the demo.
+  * h.all.v7.5.1.symbols.gmt: Hallmark gene set collection from MSigDB (May 2022).
+  * mart_export.txt: List of orthologous human-mouse nomenclature translator.

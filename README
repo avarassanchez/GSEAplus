@@ -16,6 +16,8 @@
 # Data files
 - h.all.v7.5.1.symbols.gmt
 - mart_export.txt
+- ES_NP_preranked_paired.rnk
+- QuickGO_Ossificaiton.csv
 
 (2) GSEA+ is executed using R. The following libraries are necessary:
 

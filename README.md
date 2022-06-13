@@ -1,7 +1,7 @@
 # GSEA+
 
 ## Table of Contents
-1. What is GSEA+?
+1. What is GSEA+ ?
 2. Setup
 
 ## 1. What is GSEA+ ? 
@@ -35,6 +35,17 @@ https://github.com/avarassanchez/GSEAplus
 
 ### How to Run GSEA+ 
 GSEA+ can be executed locally from R-Studio or by command-line, or using a browser.
+The required R libraries are listed below:
+```
+library(ggplot2)
+library(shiny) 
+library(shinydashboard)
+library(knitr) 
+library(data.table)
+library(rintrojs) 
+library(shinyWidgets)
+library(rmarkdown) 
+```
 
 ### List of Commands
 

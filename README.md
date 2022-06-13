@@ -34,7 +34,8 @@ https://github.com/avarassanchez/GSEAplus
   * mart_export.txt: List of orthologous human-mouse nomenclature translator.
 
 ### How to Run GSEA+ 
-GSEA+ can be executed locally from R-Studio or by command-line, or using a browser.
+GSEA+ can be executed locally from R-Studio, by command-line or using a browser.
+
 The required R libraries are listed below:
 ```
 library(ggplot2)
@@ -45,6 +46,10 @@ library(data.table)
 library(rintrojs) 
 library(shinyWidgets)
 library(rmarkdown) 
+```
+To run GSEA+ through the terminal it is necessary to access the GSEAplus directory and execute the follwing command:
+```
+Rscript app.R
 ```
 
 ### List of Commands

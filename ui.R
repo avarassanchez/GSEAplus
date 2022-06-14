@@ -17,7 +17,9 @@ library(data.table)
 library(rintrojs) 
 library(shinyWidgets)
 library(rmarkdown) 
-
+library(cowplot) 
+library(dplyr)
+library(devtools)
 
 
 source("GSEAfunctions.R")
@@ -74,33 +76,39 @@ ui <- shinyUI(dashboardPage(
                          fluidPage(
                            fluidRow(
                              column(width = 12, box(width = NULL, br(),
-                                                    tags$strong("STEP 1: Assessing the overlap"),
-                                                    tags$p("In this step we attempt to compare the gene and the candidate lists by defining two sets:
-                                genes in both lists (hit) and genes not present in the candidate list (misses). To do so, we traverse all the genes
-                                in the preranked gene set while updating a vector with those gene symbols that are shared between sets. We track the presence of 
-                                the genes with a binomial variable: 1 if present and 0 if absent. This new variable will be added to the initial data frame.
-                                Additionally count the number of genes that overlap between sets"),
-                                                    tags$strong("STEP 2: Computing the Sk"),
-                                                    tags$p("It is necessary to define a Sk value for those overlapping and non-overlapping genes. We will use the same approach as in the previous
-                                 step, traversing the data frame and updating a new variable. The Sk value for overlapping genes depends on the correlation value (rank metric).
-                                 The Sk value for non-overlapping genes is independent of the correlation value, thus, is a constant that just considers the number of unhits"),
-                                                    tags$strong("STEP 3: Computing the ES"),
-                                                    tags$p("To correctly compute the Enrichment Score (ES) we need to consider, as stated by Subramanian et al., the magnitude of the increment depends 
-                                 on the correlation of the gene with the phenotype. The procedure is the same one: we create a vector to store the running sum and use a loop
-                                 to traverse all the genes. Based on the presence variable (Step 1), we will add or subtract the Sk value (Step 2)."),
-                                                    tags$strong("STEP 4: Drawing the GSEA plot"),
-                                                    tags$p("The classical GSEA plot is formed by three panels. The top panel corresponds to the enriched profile, and the shape of the ES 
-                                 relates to the arrangement of the genes in the gene set compared with the whole expression set. The higher peak matches the maximum ES. 
-                                 The middle panel shows where the gene set members (i.e. genes annotated inside this ontology) appear in the ranked gene list. 
-                                 The bottom panel represents the ranked list metric in a curve, which measures the gene’s correlation with a phenotype."),
-                                                    tags$strong("STEP 5: Significance testing"),
-                                                    tags$p("GSEA employs permutation methods (= resampling) to generate a null distribution for each gene set.
-                                 We used a phenotype permutation to randomly swap the sample labels and recalculate each time the ES.
-                                 With such approach we obtain how widely the ES varies and how often two groups are effectively the same.
-                                 In our code we complete 1000 permutations in which we randomly assign the original phenotype labels, re-ordering the genes
-                                 and re-computing the ES. Once completed, we create a histogram of the corresponding ES null distribution."),
-                                                    tags$p("Compute the p-value"),
-                                                    tags$p("Multiple testing correction (FDR)"))
+                                                    tags$strong("STEP 0: Processing the input files"),
+                                                    tags$p("Initially a pre-ranked list and a gene list are used as inputs. 
+                                                           The pre-ranked files are necessarily loaded by the user in .rnk format. 
+                                                           In the case of the gene list, the user can use its own gene list, loaded in .tsv, .csv or .txt, or select one of the available (Hallmark collection). 
+                                                           To assure a correct execution both inputs are pre-processed. 
+                                                           Particularly, the GSEA+ application manages multiple input comparisons, therefore more than one pre-ranked list and gene set can be uploaded to be executed."),
+                                                    tags$strong("STEP 1: Enrichment Score (ES) computation"),
+                                                    tags$p("To compute the ES it is necessary to firstly assess the overlap between genes in both inputs. 
+                                                    In this intermediate step we attempt to compare the input files by defining two sets: genes in both lists (hit) and genes not present in the gene list (misses). 
+                                                    To do so, we traverse all the genes in the pre-ranked gene set while updating a binomial variable that tracks the overlapping between inputs: 1 if present and 0 if absent."),
+                                                    tags$p("To correctly compute the Enrichment Score (ES) we need to consider, as stated by Subramanian et al., that the magnitude of the increment depends on the correlation of the gene with the phenotype.
+                                                           We use a running sum to keep track of the ES computations. 
+                                                           In this sense, the ES value will increase for those genes overlapping and decrease otherwise, allowing to draw the enrichment curve. 
+                                                           The value that we subtract is fixed, and is defined as one divided by the number of genes that do not overlap. 
+                                                           However, the addition score is dependent on the expression value of each of the overlapping genes: 
+                                                           it corresponds to the absolute value of the differential expression of a gene divided by the sum of the expression values of all the overlapping genes."),
+                                                    tags$strong("STEP 2: Drawing the GSEA plot"),
+                                                    tags$p("The classical GSEA plot is formed by three panels. 
+                                                            The top panel corresponds to the enrichment profile, and the shape of the ES relates to the arrangement of the genes in the gene set compared with the whole expression set. 
+                                                            The higher absolute ES matches the maximum ES (MES) and allows to delimit the leading-edge subset. 
+                                                            The middle panel shows where the gene set members appear in the ranked gene list. 
+                                                            The bottom panel represents the ranked list metric in a curve, which measures the gene’s correlation with a phenotype."),
+                                                    tags$strong("STEP 3: Significance testing"),
+                                                    tags$p("GSEA employs permutation methods (= re-sampling) to generate a null distribution for each gene set. 
+                                                            We used a phenotype permutation to randomly swap the sample labels and re-calculate each time the ES. 
+                                                            With such approach we obtain how widely the ES varies and how often two groups are effectively the same. 
+                                                            Therefore, step 1 is completed as many times as number of permutations. 
+                                                            In each iteration the MES of the sampled data is stored to create a plot of the corresponding ES null distribution."),
+                                                    tags$p("From the null distribution the p-values is computed. 
+                                                            The p-value is the probability of observing a statistic more extreme under the null hypothesis. 
+                                                            To account for multiple hypotheses the significance level is adjusted by normalizing the ES (NES) for the gene set size. 
+                                                            A positive NES represents that the genes in the gene set are mostly placed at the top of the pre-ranked list, and the opposite situation for a negative NES. 
+                                                           The proportion of false positives is further controlled by calculating the false discovery rate (FDR) q-value. "))
                              )))),
                 tabPanel(title = strong("GSEA CHARTS"), icon = icon("chart-area"),
                          column(width = 4, verticalLayout(box(plotOutput("panel1", brush = brushOpts(id = "brush_action", resetOnNew = TRUE)), # The output plot is related by the brush_action
@@ -181,7 +189,7 @@ ui <- shinyUI(dashboardPage(
                                    ),
                                    box(radioButtons("add_mes", label = "Add maximum ES", choices = list("Yes" = 1, "No" = 2), selected = 1),
                                        radioButtons("add_0", label = "Display ES = 0 line", choices = list("Yes" = 1, "No" = 2), selected = 1),
-                                       h2("Gene set members appearance:"),
+                                       h2("Gene set members' appearance:"),
                                        radioButtons("add_panel2", label = "Display this panel", choices = list("Yes" = 1, "No" = 2), selected = 1),
                                        conditionalPanel(condition = "input.add_panel2 == 1",
                                                         selectInput("color_panel2", label = "Bar's color", 
@@ -202,12 +210,12 @@ ui <- shinyUI(dashboardPage(
                                                                                      choices = list("Black" = 1, "Green" = 3, "Yellow" = 7, "Red" = 2, "Blue" = 4, "Cyan" = 5, "Magenta" = 6, "Gray" = 8), selected = 1))))
               ),
               tabPanel(strong("SIGNIFICANCE"), icon = icon("sync"),
-                       box(h2("Customization options:"),
+                       box(h2("ES null distribution:"),
                            selectInput("color_exp1", label = "Plain color", 
                                        choices = list("Black" = 1, "Green" = 3, "Yellow" = 7, "Red" = 2, "Blue" = 4, "Cyan" = 5, "Magenta" = 6, "Gray" = 8), selected = 1),
                            selectInput("color_panel1", label = "Panel background", 
                                        choices = list("White" = 0, "Black" = 1, "Green" = 3, "Yellow" = 7, "Red" = 2, "Blue" = 4, "Cyan" = 5, "Magenta" = 6, "Gray" = 8), selected = 0),
-                           p("Refers to the space within the axis. Corresponds to the area where the curve is displayed."),
+                           p("Refers to the space within the axis. Corresponds to the area where the barplot is displayed."),
                            selectInput("color_plot1", label = "Plot background", 
                                        choices = list("White" = 0, "Black" = 1, "Green" = 3, "Yellow" = 7, "Red" = 2, "Blue" = 4, "Cyan" = 5, "Magenta" = 6, "Gray" = 8), selected = 0),
                            p("Refers to the space outside the axis. The name of the axis are displayed in this area."),

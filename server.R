@@ -17,7 +17,9 @@ library(data.table)
 library(rintrojs) 
 library(shinyWidgets)
 library(rmarkdown) 
-
+library(cowplot) 
+library(dplyr)
+library(devtools)
 
 
 source("GSEAfunctions.R")
@@ -300,6 +302,8 @@ server <- shinyServer(function(input, output, session) {
           current_candidate <- current_candidate[[1[1]]] # Change the format
           
           GSEA <- OurGSEA_plus(data_frame, current_candidate) # Call to perform all GSEA functions
+          
+          nes_perm <- c()
           
           for(mes in permutation_multi()[[count]]$ES_null){
             if(mes > 0){
@@ -643,6 +647,7 @@ server <- shinyServer(function(input, output, session) {
         GSEA_plot <- GSEA_plot + geom_hline(mapping = aes(yintercept = 0), linetype = "dashed")
       }
       
+      # Multiple comparisons
       for(i in 1:length(data_multi())){
         
         # x_text = nrow(data_multi()[[1]]$data)
@@ -684,8 +689,8 @@ server <- shinyServer(function(input, output, session) {
       if(length(data_multi()) == 1){
         
         x_text = nrow(data_multi()[[1]]$data)
-        y_text = round(max(abs(data_multi()[[1]]$data$running_ES)), 2)
-        text1 = paste("NES: ", round(NES, 2))
+        y_text = round(max(data_multi()[[1]]$data$running_ES), 2)
+        text1 = paste("NES: ", round(observed_NES, 2))
         text2 = paste("P-value: ", nom_pval)
         text3 = paste("FDR (q-value): ", FDR)
         

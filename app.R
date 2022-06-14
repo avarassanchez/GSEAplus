@@ -8,6 +8,10 @@ library(data.table)
 library(rintrojs) 
 library(shinyWidgets)
 library(rmarkdown) 
+library(cowplot) 
+library(dplyr)
+library(devtools)
+
 
 # load module functions
 source("GSEAfunctions.R")

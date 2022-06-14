@@ -5,7 +5,7 @@
 2. Setup
 
 ## 1. What is GSEA+ ? 
-GSEA+ is an entirely new application that aim to revitalise the current Gene Set Enrichment Analysis (GSEA) resources, allowing interactive but also batch processing, to cope withthe challenges posed by community of GSEA users. We plan to improve the current GSEA application by introducing novel functions that complement the ones now available and confer higher flexibility to the current GSEA pipelines: (i) to produce an interactive interface; (ii) to enable multiple ranking comparisons on the same set or on several RNA-seq groups; (iii) to facilitate the interpretation of the results; and (iv) to create personalised high-resolution and ready-to-publish plots.
+GSEA+ is an entirely new application that aim to revitalise the current Gene Set Enrichment Analysis (GSEA) resources, allowing interactive but also batch processing, to cope with the challenges posed by community of GSEA users. We plan to improve the current GSEA application by introducing novel functions that complement the ones now available and confer higher flexibility to the current GSEA pipelines: (i) to produce an interactive interface; (ii) to enable multiple ranking comparisons on the same set or on several RNA-seq groups; (iii) to facilitate the interpretation of the results; and (iv) to create personalised high-resolution and ready-to-publish plots.
 
 The software is presented into two distinct modes: dynammic application and integrated in command-line pipelines.
 

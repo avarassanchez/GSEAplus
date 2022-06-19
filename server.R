@@ -493,33 +493,6 @@ server <- shinyServer(function(input, output, session) {
         GSEA_plot <- GSEA_plot + geom_hline(mapping = aes(yintercept = 0), linetype = "dashed")
       }
       
-      # Multiple inputs
-      for(i in 1:length(data_multi())){
-        # Search genes option
-        if(is.null(input$selection_genes) == FALSE){
-          genes <- input$selection_genes
-          filtered_data <- data_multi()[[i]]$data %>% filter(names %in% genes)
-          hit_filtered_data <- filtered_data %>% filter(indicator == 1)
-          miss_filtered_data <- filtered_data %>% filter(indicator == 0)
-          
-          # Draws a line to represent the position of the gene (if the gene is present, indicator = 1)
-          for(miss in miss_filtered_data){
-            GSEA_plot <- GSEA_plot + geom_point(data = miss_filtered_data, mapping = aes(x = ranking, y = running_ES)) + 
-              geom_text(data = miss_filtered_data, mapping = aes(x = ranking, y = running_ES, label = names), size = 5, fontface = 2, vjust = -1) 
-          }
-          
-          for(hit in hit_filtered_data){
-            GSEA_plot <- GSEA_plot + geom_point(data = hit_filtered_data, mapping = aes(x = ranking, y = running_ES), color = input$color_search_gene) + 
-              geom_text(data = hit_filtered_data, mapping = aes(x = ranking, y = running_ES, label = names), size = 5, fontface = 2, vjust = -1, color = input$color_search_gene) 
-          }
-        }
-        
-        # Add MES line -> IT JUST DIAPLAY THE MES LINE OF THE LAST ITERATION
-        # if(input$add_mes == 1){
-        #   GSEA_plot <- GSEA_plot + geom_vline(mapping = aes(xintercept = data_multi()[[i]]$MES_rank), linetype = "dashed", color = i+1)
-        # }
-      }
-      
       # When just one prerank and one gene set are selected, draw all the panels
       if(length(data_multi()) == 1){
         
@@ -556,9 +529,10 @@ server <- shinyServer(function(input, output, session) {
             limit <- 0
           }
           
-          GSEA_plot <- GSEA_plot + geom_rug(data = hit_rank, mapping = aes(x = indicator1), 
+          GSEA_plot <- GSEA_plot + geom_rug(data = hit_rank, mapping = aes(x = indicator1), alpha = 0.5,
                                             sides = "b", color = input$color_panel2, length = unit(0.1, "npc")) + ylim(min - 0.1, max) + 
-            geom_rug(data = data_multi()[[1]]$data, mapping = aes(x = ranking), color = c(up_colors(limit), down_colors(nrow(data_multi()[[1]]$data) - limit))) +
+            geom_rug(data = data_multi()[[1]]$data, mapping = aes(x = ranking),
+                     color = c(up_colors(limit), down_colors(nrow(data_multi()[[1]]$data) - limit))) +
             labs(x = NULL)
           
           # Highlight line when searched gene is overlapping
@@ -600,6 +574,33 @@ server <- shinyServer(function(input, output, session) {
           GSEA_plot <- GSEA_plot + labs(x = "Rank in Ordered Dataset")
         }
         
+      }
+      
+      # Multiple inputs
+      for(i in 1:length(data_multi())){
+        # Search genes option
+        if(is.null(input$selection_genes) == FALSE){
+          genes <- input$selection_genes
+          filtered_data <- data_multi()[[i]]$data %>% filter(names %in% genes)
+          hit_filtered_data <- filtered_data %>% filter(indicator == 1)
+          miss_filtered_data <- filtered_data %>% filter(indicator == 0)
+          
+          # Draws a line to represent the position of the gene (if the gene is present, indicator = 1)
+          for(miss in miss_filtered_data){
+            GSEA_plot <- GSEA_plot + geom_point(data = miss_filtered_data, mapping = aes(x = ranking, y = running_ES)) + 
+              geom_text(data = miss_filtered_data, mapping = aes(x = ranking, y = running_ES, label = names), size = 5, fontface = 2, vjust = -1) 
+          }
+          
+          for(hit in hit_filtered_data){
+            GSEA_plot <- GSEA_plot + geom_point(data = hit_filtered_data, mapping = aes(x = ranking, y = running_ES), color = input$color_search_gene) + 
+              geom_text(data = hit_filtered_data, mapping = aes(x = ranking, y = running_ES, label = names), size = 5, fontface = 2, vjust = -1, color = input$color_search_gene) 
+          }
+        }
+        
+        # Add MES line -> IT JUST DIAPLAY THE MES LINE OF THE LAST ITERATION
+        # if(input$add_mes == 1){
+        #   GSEA_plot <- GSEA_plot + geom_vline(mapping = aes(xintercept = data_multi()[[i]]$MES_rank), linetype = "dashed", color = i+1)
+        # }
       }
       
       GSEA_plot
@@ -671,44 +672,6 @@ server <- shinyServer(function(input, output, session) {
       # Add y-axis = 0
       if(input$add_0 == 1){
         GSEA_plot <- GSEA_plot + geom_hline(mapping = aes(yintercept = 0), linetype = "dashed")
-      }
-      
-      # Multiple comparisons
-      for(i in 1:length(data_multi())){
-        
-        # x_text = nrow(data_multi()[[1]]$data)
-        # y_text = round(max(abs(data_multi()[[1]]$data$running_ES)), 2)
-        # text1 = paste("NES: ", round(NES, 2))
-        # text2 = paste("P-value: ", nom_pval)
-        # text3 = paste("FDR (q-value): ", FDR)
-        
-        # GSEA_plot <- GSEA_plot + annotate(geom = "text", x = (x_text - 5000), y = y_text, label = text1, size = 3, color = i+1) +
-          # annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.05), label = text2, size = 3, color = i+1) +
-          # annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.10), label = text3, size = 3, color = i+1)
-        
-        # Search genes option
-        if(is.null(input$selection_genes) == FALSE){
-          genes <- input$selection_genes
-          filtered_data <- data_multi()[[i]]$data %>% filter(names %in% genes)
-          hit_filtered_data <- filtered_data %>% filter(indicator == 1)
-          miss_filtered_data <- filtered_data %>% filter(indicator == 0)
-          
-          # Draws a line to represent the position of the gene (if the gene is present, indicator = 1)
-          for(miss in miss_filtered_data){
-            GSEA_plot <- GSEA_plot + geom_point(data = miss_filtered_data, mapping = aes(x = ranking, y = running_ES)) + 
-              geom_text(data = miss_filtered_data, mapping = aes(x = ranking, y = running_ES, label = names), size = 5, fontface = 2, vjust = -1) 
-          }
-          
-          for(hit in hit_filtered_data){
-            GSEA_plot <- GSEA_plot + geom_point(data = hit_filtered_data, mapping = aes(x = ranking, y = running_ES), color = input$color_search_gene) + 
-              geom_text(data = hit_filtered_data, mapping = aes(x = ranking, y = running_ES, label = names), size = 5, fontface = 2, vjust = -1, color = input$color_search_gene) 
-          }
-        }
-        
-        # Add MES line -> IT JUST DIAPLAY THE MES LINE OF THE LAST ITERATION
-        # if(input$add_mes == 1){
-        #   GSEA_plot <- GSEA_plot + geom_vline(mapping = aes(xintercept = data_multi()[[i]]$MES_rank), linetype = "dashed", color = i+1)
-        # }
       }
       
       # When just one prerank and one gene set are selected, draw all the panels
@@ -802,6 +765,44 @@ server <- shinyServer(function(input, output, session) {
           GSEA_plot <- GSEA_plot + labs(x = "Rank in Ordered Dataset")
         }
         
+      }
+      
+      # Multiple comparisons
+      for(i in 1:length(data_multi())){
+        
+        # x_text = nrow(data_multi()[[1]]$data)
+        # y_text = round(max(abs(data_multi()[[1]]$data$running_ES)), 2)
+        # text1 = paste("NES: ", round(NES, 2))
+        # text2 = paste("P-value: ", nom_pval)
+        # text3 = paste("FDR (q-value): ", FDR)
+        
+        # GSEA_plot <- GSEA_plot + annotate(geom = "text", x = (x_text - 5000), y = y_text, label = text1, size = 3, color = i+1) +
+        # annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.05), label = text2, size = 3, color = i+1) +
+        # annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.10), label = text3, size = 3, color = i+1)
+        
+        # Search genes option
+        if(is.null(input$selection_genes) == FALSE){
+          genes <- input$selection_genes
+          filtered_data <- data_multi()[[i]]$data %>% filter(names %in% genes)
+          hit_filtered_data <- filtered_data %>% filter(indicator == 1)
+          miss_filtered_data <- filtered_data %>% filter(indicator == 0)
+          
+          # Draws a line to represent the position of the gene (if the gene is present, indicator = 1)
+          for(miss in miss_filtered_data){
+            GSEA_plot <- GSEA_plot + geom_point(data = miss_filtered_data, mapping = aes(x = ranking, y = running_ES)) + 
+              geom_text(data = miss_filtered_data, mapping = aes(x = ranking, y = running_ES, label = names), size = 5, fontface = 2, vjust = -1) 
+          }
+          
+          for(hit in hit_filtered_data){
+            GSEA_plot <- GSEA_plot + geom_point(data = hit_filtered_data, mapping = aes(x = ranking, y = running_ES), color = input$color_search_gene) + 
+              geom_text(data = hit_filtered_data, mapping = aes(x = ranking, y = running_ES, label = names), size = 5, fontface = 2, vjust = -1, color = input$color_search_gene) 
+          }
+        }
+        
+        # Add MES line -> IT JUST DIAPLAY THE MES LINE OF THE LAST ITERATION
+        # if(input$add_mes == 1){
+        #   GSEA_plot <- GSEA_plot + geom_vline(mapping = aes(xintercept = data_multi()[[i]]$MES_rank), linetype = "dashed", color = i+1)
+        # }
       }
       
       GSEA_plot

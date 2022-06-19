@@ -1,6 +1,6 @@
 ---
 title: GSEA+
-output: html_document
+output: pdf_document
 params:
   # Parameters for the plots
   add_title: NA
@@ -22,6 +22,8 @@ params:
   color_exp_line: NA
   color_exp: NA
   red_blue: NA
+  line_exp: NA
+  color_dashed1: NA
   
   # Data
   gene_list: NA
@@ -45,6 +47,22 @@ params:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r libraries, include=FALSE}
+library(ggplot2)
+library(shiny) 
+library(shinydashboard)
+library(knitr) 
+library(data.table)
+library(rintrojs) 
+library(shinyWidgets)
+library(rmarkdown) 
+library(cowplot) 
+library(dplyr)
+library(devtools)
+library(gridExtra)
+```
+
 
 ```{r functions, include=FALSE}
 # Takes the names and values of the preranked list (1st and 2nd column)
@@ -198,64 +216,6 @@ OurGSEA_plus <- function(data, current_candidate){
 }
 ```
 
-```{r GSEA_execution, include=FALSE}
-count = 1
-null_dist <- c()
-permutation_num = 1000 # Defining the number of times we will make the random sampling
-
-plots_list <- list()
-null_list <- list()
-
-for(data_frame in params$gene_list){ # Traverse all the input gene lists
-  for(list in 1:length(params$candidate_list)){ # Traverse all the candidate gene lists
-    
-    current_candidate <- c(params$candidate_list[list]) # Select a candidate gene list
-    current_candidate <- current_candidate[[1[1]]] # Change the format
-    
-    GSEA <- OurGSEA_plus(data_frame, current_candidate) # Call to perform all GSEA functions
-
-    count = count + 1
-    
-    ########################
-    # Drawing the GSEA plot
-    ########################
-    
-    min <- min(GSEA$data$running_ES)
-    max <- max(GSEA$data$running_ES)
-            
-    GSEA_plot <- ggplot() +
-            geom_line(data = GSEA$data, mapping = aes(x = ranking, y = running_ES), color = params$color, size = params$curve_size) + 
-            theme(
-              panel.background = element_rect(fill = params$color_panel),
-              plot.background = element_rect(fill = params$color_plot),
-              plot.title = element_text(color = params$color_title, size = params$title_size, face = "bold", hjust = params$title_position)) +
-            labs(x = "Rank in Ordered Dataset", y = "Running Enrichment Score", caption = count, color = "Comparison Number") 
-    
-    plots_list <- list(plots_list, GSEA_plot) # Save all the plots in a single list
-    
-    ################################
-    # Drawing the NULL distribution
-    ################################
-    
-    ES_nulldist <- phenotype_permutation(GSEA$data, permutation_num) # Call to perform the phenotype permutation
-    null_dist <- c(null_dist, list(ES_nulldist))
-    
-    permutation <- null_dist$ES_null
-    null <- data.frame(permutation)
-    
-    NULL_plot <- ggplot(data = null, mapping = aes(x = permutation)) + geom_histogram(bins = 30) + theme_classic() +
-      geom_vline(data = GSEA$data, mapping = aes(xintercept = GSEA$MES_value), linetype = "dashed", color = params$color_dashed1) +
-      labs(x = "ES", y = "P(ES)", title = "Random ES Distribution", caption = id) +
-      theme(
-        panel.background = element_rect(fill = params$color_panel1),
-        plot.background = element_rect(fill = params$color_plot1),
-        plot.title = element_text(color = params$color_title1, face = "bold", hjust = 0.5))
-    
-    null_list <- list(null_list, NULL_plot)
-  }
-}
-```
-
 ## 1. Pipeline
 **STEP 0: Processing the input files**
 Initially a pre-ranked list and a gene list are used as inputs. The pre-ranked files are necessarily loaded by the user in .rnk format. In the case of the gene list, the user can use its own gene list, loaded in .tsv, .csv or .txt, or select one of the available (Hallmark collection). To assure a correct execution both inputs are pre-processed. Particularly, the GSEA+ application manages multiple input comparisons, therefore more than one pre-ranked list and gene set can be uploaded to be executed.
@@ -285,39 +245,171 @@ This section will display the classical GSEA plots and their summary tables asso
 ### 3.1 Classical GSEA charts
 A total of `params$num_plots` were generated. Each comparison is labeled with a number. This number will allow us to identificate the results of each comparison.
 
-```{r plots, include=FALSE}
-for(plot in plots_list){
-  print(plot)
+```{r plots, echo=FALSE}
+count = 0
+
+for(data_frame in params$gene_list){ # Traverse all the input gene lists
+  for(list in 1:length(params$candidate_list)){ # Traverse all the candidate gene lists
+    
+    current_candidate <- c(params$candidate_list[list]) # Select a candidate gene list
+    current_candidate <- current_candidate[[1[1]]] # Change the format
+    
+    GSEA <- OurGSEA_plus(data_frame, current_candidate) # Call to perform all GSEA functions
+    
+    count = count + 1
+    id <- paste("Comparison: ", count)
+    
+    ########################
+    # Drawing the GSEA plot
+    ########################
+    
+    min <- min(GSEA$data$running_ES)
+    max <- max(GSEA$data$running_ES)
+            
+    GSEA_plot <- ggplot() +
+            geom_line(data = GSEA$data, mapping = aes(x = ranking, y = running_ES), color = params$color, size = params$curve_size) + 
+            theme(
+              panel.background = element_rect(fill = params$color_panel),
+              plot.background = element_rect(fill = params$color_plot),
+              plot.title = element_text(color = params$color_title, size = params$title_size, face = "bold", hjust = params$title_position)) +
+            labs(x = "Rank in Ordered Dataset", y = "Running Enrichment Score", color = "Comparison Number") 
+
+      # Add MES line
+      if(params$add_mes == 1){
+        GSEA_plot <- GSEA_plot + geom_vline(mapping = aes(xintercept = GSEA$MES_rank), linetype = "dashed", color = params$color_dashed)
+      }
+        
+      # Add panel 2 (barcode + color range)
+      if(params$add_panel2 == 1){
+        up_colors <- colorRampPalette(c("red", "#FFFFFF")) # Ranges from red to white
+        down_colors <- colorRampPalette(c("#FFFFFF", "#1b98e0")) # Ranges from white to blue
+        
+        hit_rank <- data.frame(which(GSEA$data$indicator == 1))
+        indicator1 <- which(GSEA$data$indicator == 1)
+        
+        min <- min(GSEA$data$running_ES)
+        max <- max(GSEA$data$running_ES)
+        
+        pos_val <- sum(GSEA$data$values > 0)
+        if(pos_val > 0){
+          limit <- which(GSEA$data$values == min(GSEA$data$values[GSEA$data$values > 0]))
+        } else{
+          limit <- 0
+        }
+        
+        GSEA_plot <- GSEA_plot + geom_rug(data = hit_rank, mapping = aes(x = indicator1), 
+                                          sides = "b", color = params$color_panel2, length = unit(0.1, "npc")) + ylim(min - 0.1, max) + 
+          geom_rug(data = GSEA$data, mapping = aes(x = ranking), color = c(up_colors(limit), down_colors(nrow(GSEA$data) - limit))) +
+          labs(x = NULL)
+        
+        # Highlight line when searched gene is overlapping
+        if(is.null(params$selection_genes) == FALSE){
+          filtered_data <- GSEA$data %>% filter(names %in% genes)
+          filtered_data <- filtered_data %>% filter(indicator == 1)
+          
+          # Draws a line to represent the position of the gene (if the gene is present, indicator = 1)
+          GSEA_plot <- GSEA_plot + geom_rug(data = filtered_data, mapping = aes(x = ranking), 
+                                            sides = "b", length = unit(0.15, "npc"), color = params$color_search_gene, size = 2)
+        }
+      }
+  
+      # Display panel 3
+      if(params$add_panel3 == 1){
+        GSEA_plot <- GSEA_plot +
+          theme(
+            axis.ticks.x = element_blank(),
+            axis.text.x = element_blank())
+        
+        threshold <- max(abs(min(GSEA$data$values)), abs(max(GSEA$data$values)))
+        
+        p2 <- ggplot(data = GSEA$data, mapping = aes(x = ranking, y = values)) + geom_col() + 
+          labs(caption = id, y = "Ranked List Metric", x = "Rank in Ordered Dataset") +
+          theme_classic() + ylim(-threshold, threshold)
+        
+        if(params$line_exp == 1){
+          p2 <- p2 + geom_vline(mapping = aes(xintercept = limit[1]), linetype = "dashed", color = params$color_exp_line) 
+        }
+        
+        if(params$red_blue == 2){
+          p2 <- p2 + geom_col(color = params$color_exp)
+        } else{
+          p2 <- p2 + geom_col(color = ifelse(GSEA$data$values > 0, 'red', 'blue'))
+        }
+        
+        GSEA_plot <- plot_grid(GSEA_plot, p2, ncol = 1, nrow = 2, rel_heights = c(2,1))
+        
+      } else{
+        GSEA_plot <- GSEA_plot + labs(x = "Rank in Ordered Dataset")
+      }
+    # plots_list <- list(plots_list, GSEA_plot) # Save all the plots in a single list
+    print(GSEA_plot)
+  }
 }
 ```
 
 ### 3.2. Summary table
 The more important metrics and statistics have been collected in the table below. Each row presents the data of a particular comparison. The columns' guidelines are the following:
 
-Col. 1: Displays the label used to identificate each of the comparisons between a pre-ranked list and a gene set. It is linked to the legend of the GSEA plot.
-Col. 2|3: Contains the name of the pre-ranked lists and the gene sets.
-Col. 4|5: Total sum of genes in each of the pre-ranked lists and gene sets.
-Col. 6: Indicates the up-regulated class. Positive if enrichment in the left, and negative otherwise.
-Col. 7: Gives the values of the Maximum Enrichment Score (MES). The MES value indicates the maximum deviance of the ES from 0.
-Col. 8: Displays the rank were the MES is located.")
-Col. 9: Total sum of genes that are present in both input files. Correspond to the number of lines vertically displayed in the plot.
-Col. 10: Total sum of genes that form the leading-edge subset. The leading-edge subset is defined by the MES. If positive enrichment we will consider those genes before the MES, and if negative enrichment the genes after the MES will be considered.
+* Col. 1: Displays the label used to identificate each of the comparisons between a pre-ranked list and a gene set. It is linked to the legend of the GSEA plot.
+* Col. 2|3: Contains the name of the pre-ranked lists and the gene sets.
+* Col. 4|5: Total sum of genes in each of the pre-ranked lists and gene sets.
+* Col. 6: Indicates the up-regulated class. Positive if enrichment in the left, and negative otherwise.
+* Col. 7: Gives the values of the Maximum Enrichment Score (MES). The MES value indicates the maximum deviance of the ES from 0.
+* Col. 8: Displays the rank were the MES is located.")
+* Col. 9: Total sum of genes that are present in both input files. Correspond to the number of lines vertically displayed in the plot.
+* Col. 10: Total sum of genes that form the leading-edge subset. The leading-edge subset is defined by the MES. If positive enrichment we will consider those genes before the MES, and if negative enrichment the genes after the MES will be considered.
        
-```{r summary_table, include=FALSE}
-params$important_values
+```{r summary_table, echo=FALSE}
+params$important_values[c(1,2,3)]
+
+params$important_values[c(1,4,5,6,7,8,9)]
 ```
 
 ### 3.3. Significance estimation
 To evaluate the significance a permutation method is completed iterating 1000 times. The maximum ES (MES) of each iteration is stored and displayed in a histogram. Additionally, the observed MES (i.e. the MES computed from the original data without randomization) is also displayed as a dashed line. The null ES distributions of each of the permutations are listed below.
 
-```{r null_plots, include=FALSE}
-for(null in null_list){
-  print(null)
+```{r null_plots, echo=FALSE}
+count = 0
+null_dist <- c()
+permutation_num = 1000 # Defining the number of times we will make the random sampling
+
+for(data_frame in params$gene_list){ # Traverse all the input gene lists
+  for(list in 1:length(params$candidate_list)){ # Traverse all the candidate gene lists
+    
+    current_candidate <- c(params$candidate_list[list]) # Select a candidate gene list
+    current_candidate <- current_candidate[[1[1]]] # Change the format
+    
+    GSEA <- OurGSEA_plus(data_frame, current_candidate) # Call to perform all GSEA functions
+
+    count = count + 1
+    id <- paste("Comparison: ", count)
+
+    ################################
+    # Drawing the NULL distribution
+    ################################
+    
+    ES_nulldist <- phenotype_permutation(GSEA$data, permutation_num) # Call to perform the phenotype permutation
+    null_dist <- c(null_dist, list(ES_nulldist))
+    
+    permutation <- ES_nulldist$ES_null
+    null <- data.frame(permutation)
+    
+    NULL_plot <- ggplot(data = null, mapping = aes(x = permutation)) + geom_histogram(bins = 30) + theme_classic() +
+      geom_vline(data = GSEA$data, mapping = aes(xintercept = GSEA$MES_value), linetype = "dashed", color = params$color_dashed1) +
+      labs(x = "ES", y = "P(ES)", title = "Random ES Distribution", caption = id) +
+      theme(
+        panel.background = element_rect(fill = params$color_panel1),
+        plot.background = element_rect(fill = params$color_plot1),
+        plot.title = element_text(color = params$color_title1, face = "bold", hjust = 0.5))
+    
+    print(NULL_plot)
+
+  }
 }
 ```
 
 To numerically assess the significance of the obtained results the P-values, NES, FDR (q-value) and the TAGS, LIST and SIGNAL percentages were computed and collected in the following table.
 
-```{r summary_stats, include=FALSE}
+```{r summary_stats, echo=FALSE}
 params$important_statistics
 ```

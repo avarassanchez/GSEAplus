@@ -143,7 +143,12 @@ server <- shinyServer(function(input, output, session) {
           if(ext_cand == "txt"){
             candidate <- list(readLines(file_cand))
           } else{
-            input_candidate_list <- read.csv(file_cand, sep = "", header = F)
+            if(input$header == 2){
+              input_candidate_list <- read.csv(file_cand, sep = "", header = F)
+            } else{
+              input_candidate_list <- read.csv(file_cand, sep = "", header = T)
+              colnames(input_candidate_list) <- "V1"
+            }
             input_candidate_list <- unique(input_candidate_list$V1) # Select the gene symbols and Remove repeated elements
             candidate <- list(input_candidate_list)
           }
@@ -246,22 +251,34 @@ server <- shinyServer(function(input, output, session) {
     
     # Obtain the gene symbols within the leading-edge subset
     leading_edge <- reactive({
-      
-      all_leading <- c()
+
+      leading_edge_df <- c()
+      max = 0 
       
       for(i in length(data_multi())){
         
-        if(data_multi()[[i]]$MES_value < 0){ # Considering positive enrichment
-          leading_edge_df <- data_multi()[[i]]$data[data_multi()[[i]]$data$ranking <= data_multi()$MES_rank]$names
+        if(data_multi()[[i]]$MES_value > 0){ # Considering positive enrichment
+          leading_edge_df <- c(leading_edge_df, list(data_multi()[[i]]$data[data_multi()[[i]]$data$ranking <= data_multi()$MES_rank]$names))
+          if(length(data_multi()[[i]]$data[data_multi()[[i]]$data$ranking <= data_multi()$MES_rank]$names) > max){
+            max = length(data_multi()[[i]]$data[data_multi()[[i]]$data$ranking <= data_multi()$MES_rank]$names)
+          }
         } else{ # Considering negative enrichment
-          leading_edge_df <- data_multi()[[i]]$data[data_multi()[[i]]$data$ranking >= data_multi()$MES_rank]$names
+          leading_edge_df <- c(leading_edge_df, list(data_multi()[[i]]$data[data_multi()[[i]]$data$ranking >= data_multi()$MES_rank]$names))
+          if(length(data_multi()[[i]]$data[data_multi()[[i]]$data$ranking >= data_multi()$MES_rank]$names) > max){
+            max = length(data_multi()[[i]]$data[data_multi()[[i]]$data$ranking >= data_multi()$MES_rank]$names)
+          }
         }
-        
-        leading_edge <- list(leading_edge_df)
-        all_leading <- c(all_leading, leading_edge)
       }
       
-      all_leading
+      les <- data.frame(matrix(NA,    # Create empty data frame
+                               nrow = max,
+                               ncol = length(leading_edge_df)))
+      
+      for(i in 1:length(leading_edge_df)){
+        les[i] <- c(leading_edge_df[[i]], rep(NA, max - length(leading_edge_df[[i]])))
+      }
+      
+      les
       
     })
     
@@ -476,7 +493,7 @@ server <- shinyServer(function(input, output, session) {
         GSEA_plot <- GSEA_plot + geom_hline(mapping = aes(yintercept = 0), linetype = "dashed")
       }
       
-      # Labels the searched gene symbols
+      # Multiple inputs
       for(i in 1:length(data_multi())){
         # Search genes option
         if(is.null(input$selection_genes) == FALSE){
@@ -506,7 +523,15 @@ server <- shinyServer(function(input, output, session) {
       # When just one prerank and one gene set are selected, draw all the panels
       if(length(data_multi()) == 1){
         
-        GSEA_plot <- GSEA_plot + theme(legend.position = "none")
+        GSEA_plot <- GSEA_plot + theme(
+          panel.background = element_rect(fill = input$color_panel),
+          plot.background = element_rect(fill = input$color_plot),
+          plot.title = element_text(color = input$color_title, size = input$title_size, face = "bold", hjust = input$title_position),
+          legend.position = "none") + 
+          geom_line(data = data_multi()[[1]]$data, mapping = aes(x = ranking, y = running_ES), color = input$color, size = input$curve_size) +
+          labs(x = "Rank in Ordered Dataset", y = "Running Enrichment Score", title = input$description, color = "Comparison Number") 
+        
+        # GSEA_plot <- GSEA_plot + theme(legend.position = "none")
         
         # Add MES line
         if(input$add_mes == 1){
@@ -581,6 +606,7 @@ server <- shinyServer(function(input, output, session) {
       
     })
     
+    # Get the classical GSEA plot with the statistical values
     draw_panel1_copy <- reactive({
       
       whole_data <- data.frame()
@@ -688,21 +714,29 @@ server <- shinyServer(function(input, output, session) {
       # When just one prerank and one gene set are selected, draw all the panels
       if(length(data_multi()) == 1){
         
+        GSEA_plot <- GSEA_plot + theme(
+          panel.background = element_rect(fill = input$color_panel),
+          plot.background = element_rect(fill = input$color_plot),
+          plot.title = element_text(color = input$color_title, size = input$title_size, face = "bold", hjust = input$title_position),
+          legend.position = "none") + 
+          geom_line(data = data_multi()[[1]]$data, mapping = aes(x = ranking, y = running_ES), color = input$color, size = input$curve_size) +
+          labs(x = "Rank in Ordered Dataset", y = "Running Enrichment Score", title = input$description, color = "Comparison Number") 
+        
+        # GSEA_plot <- GSEA_plot + theme(legend.position = "none")
+        
         x_text = nrow(data_multi()[[1]]$data)
         y_text = round(max(data_multi()[[1]]$data$running_ES), 2)
         text1 = paste("NES: ", round(observed_NES, 2))
         text2 = paste("P-value: ", nom_pval)
         text3 = paste("FDR (q-value): ", FDR)
         
-        GSEA_plot <- GSEA_plot + annotate(geom = "text", x = (x_text - 5000), y = y_text, label = text1, size = 3) +
-          annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.05), label = text2, size = 3) +
-          annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.10), label = text3, size = 3)
+        GSEA_plot <- GSEA_plot + annotate(geom = "text", x = (x_text - 5000), y = y_text, label = text1, size = 5) +
+          annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.05), label = text2, size = 5) +
+          annotate(geom = "text", x = (x_text - 5000), y = (y_text - 0.10), label = text3, size = 5)
         
         
         min <- min(data_multi()[[1]]$data$running_ES)
         max <- max(data_multi()[[1]]$data$running_ES)
-        
-        GSEA_plot <- GSEA_plot + theme(legend.position = "none")
         
         # Add MES line
         if(input$add_mes == 1){
@@ -774,7 +808,6 @@ server <- shinyServer(function(input, output, session) {
       
     })
     
-    
     # Draws the classical GSEA plot (Dashboard/GSEA charts)
     output$panel1 <- renderPlot({
       draw_panel1()
@@ -821,7 +854,6 @@ server <- shinyServer(function(input, output, session) {
         
       })
     })
-    
     
     # Initialize the coordinates for the zoomed version of the plot
     ranges <- reactiveValues(x = NULL, y =  NULL)
@@ -874,7 +906,7 @@ server <- shinyServer(function(input, output, session) {
     # CREATES AN EMPTY FILE
     output$leading_edge <- downloadHandler(
       filename = function(){
-        paste0("leading_edge.csv", sep = "")
+        paste("leading_edge.csv", sep = "")
       },
       content = function(file){
         write.csv(x = leading_edge(), file = file)
@@ -884,28 +916,76 @@ server <- shinyServer(function(input, output, session) {
     # Generates the button to download the summary table
     output$downloadTable <- downloadHandler(
       filename = function(){
-        paste0("SummaryTable.csv", sep = "")
+        paste("SummaryTable.csv", sep = "")
       },
       content = function(file){
-        write.csv(x = summary, file = file, sep = "", col.names = TRUE)
+        write.csv(x = important_values(), file = file, sep = "", col.names = TRUE)
       }
     )
     
     # Generates button to download the plot (Dashboard/GSEA charts)
-    # CREATES AN EMPTY FILE
     output$downloadPlot <- downloadHandler(
       filename = function(){
         paste0("GSEAplot.pdf")
       },
       content = function(file){
         pdf(file)
-        draw_panel1()
+        print(draw_panel1())
         dev.off()
       })
     
+    # Generates button to download the copied plot (Dashboard/Significance)
+    output$sig_plot <- downloadHandler(
+      filename = function(){
+        paste0("GSEAplot_stats.pdf")
+      },
+      content = function(file){
+        pdf(file)
+        print(draw_panel1_copy())
+        dev.off()
+      })
+    
+    # Generates button to download the copied plot (Dashboard/Significance)
+    output$sig_table <- downloadHandler(
+      filename = function(){
+        paste0("Table_significance.csv")
+      },
+      content = function(file){
+        pdf(file)
+        write.csv(x = important_statistics(), file = file, sep = "", col.names = TRUE)
+        dev.off()
+      })
+    
+    # Generate button to download the null distribution (Dashboard/Significance)
+    output$sig_null <- downloadHandler(
+      filename = function(){
+        paste0("GSEA_null_dist.pdf")
+      },
+      content = function(file){
+        pdf(file)
+        for(i in 1:length(data_multi())){
+          
+          permutation <- permutation_multi()[[i]]$ES_null
+          null <- data.frame(permutation)
+          
+          NULL_plot <- ggplot(data = null, mapping = aes(x = permutation)) + geom_histogram(bins = 30) + theme_classic() +
+            geom_vline(data = data_multi()[i]$data, mapping = aes(xintercept = data_multi()[[i]]$MES_value), linetype = "dashed", color = input$color_dashed1) +
+            labs(x = "ES", y = "P(ES)", title = "Random ES Distribution", caption = id) +
+            theme(
+              panel.background = element_rect(fill = input$color_panel1),
+              plot.background = element_rect(fill = input$color_plot1),
+              plot.title = element_text(color = input$color_title1, face = "bold", hjust = 0.5))
+          
+          print(NULL_plot)
+        }
+        dev.off()
+      })
+    
+    # important_statistics
+    
     # Generates button to download the report
     output$downloadData <- downloadHandler(
-      filename = "reportGSEAplus.html",
+      filename = "reportGSEAplus.pdf",
       content = function(file){
         # Copy the report file to a temporary directory before processing
         tempReport <- file.path(tempdir(), "gsea+report.Rmd")
@@ -933,6 +1013,8 @@ server <- shinyServer(function(input, output, session) {
           color_exp_line = input$color_exp_line,
           color_exp = input$color_exp,
           red_blue = input$red_blue,
+          line_exp = input$line_exp,
+          color_dashed1 = input$color_dashed1,
           
           # Data
           gene_list = gene_list_loaded(),
@@ -949,7 +1031,6 @@ server <- shinyServer(function(input, output, session) {
         
         # Knit the document passing in the params list
         rmarkdown::render(tempReport, output_file = file,
-                          encoding = "UTF-8",
                           params = params,
                           envir = new.env(parent = globalenv()))
       })

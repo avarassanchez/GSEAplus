@@ -350,19 +350,18 @@ for(data_frame in params$gene_list){ # Traverse all the input gene lists
 ### 3.2. Summary table
 The more important metrics and statistics have been collected in the table below. Each row presents the data of a particular comparison. The columns' guidelines are the following:
 
-* Col. 1: Displays the label used to identificate each of the comparisons between a pre-ranked list and a gene set. It is linked to the legend of the GSEA plot.
+* Col. 1: Displays the label used as identification of each of the comparisons between a pre-ranked list and a gene set. It is linked to the legend of the GSEA plot.
 * Col. 2|3: Contains the name of the pre-ranked lists and the gene sets.
-* Col. 4|5: Total sum of genes in each of the pre-ranked lists and gene sets.
-* Col. 6: Indicates the up-regulated class. Positive if enrichment in the left, and negative otherwise.
-* Col. 7: Gives the values of the Maximum Enrichment Score (MES). The MES value indicates the maximum deviance of the ES from 0.
-* Col. 8: Displays the rank were the MES is located.")
-* Col. 9: Total sum of genes that are present in both input files. Correspond to the number of lines vertically displayed in the plot.
-* Col. 10: Total sum of genes that form the leading-edge subset. The leading-edge subset is defined by the MES. If positive enrichment we will consider those genes before the MES, and if negative enrichment the genes after the MES will be considered.
+* Col. 4: Total sum of genes in each of the pre-ranked lists.
+* Col. 5: Indicates the up-regulated class. Positive if enrichment in the left, and negative otherwise.
+* Col. 6: Gives the values of the Maximum Enrichment Score (MES). The MES value indicates the maximum deviance of the ES from 0.
+* Col. 7: Displays the rank were the MES is located.")
+* Col. 8: Total sum of genes that form the leading-edge subset. The leading-edge subset is defined by the MES. If positive enrichment we will consider those genes before the MES, and if negative enrichment the genes after the MES will be considered.
        
 ```{r summary_table, echo=FALSE}
 params$important_values[c(1,2,3)]
 
-params$important_values[c(1,4,5,6,7,8,9)]
+params$important_values[c(1,4,5,6,7,8)]
 ```
 
 ### 3.3. Significance estimation

@@ -398,8 +398,7 @@ server <- shinyServer(function(input, output, session) {
     # Collect the most important values 
     important_values <- reactive({
       summary_values <- c(Comparison = NULL, Prerank = NULL, GeneSet = NULL, NumPrerank = NULL,  NumGeneSet = NULL,
-                          EnrichedClass = NULL, MES = NULL, MES_rank = NULL, NumOverlap = NULL,
-                          NumLeading = NULL)
+                          EnrichedClass = NULL, MES = NULL, MES_rank = NULL, NumLeading = NULL)
       
       count_prerank = 1
       count_gene_set = 1
@@ -427,14 +426,14 @@ server <- shinyServer(function(input, output, session) {
           
           summary_values$MES <- c(summary_values$MES, round(GSEA$MES_value, 5))
           summary_values$MES_rank <- c(summary_values$MES_rank, GSEA$MES_rank)
-          summary_values$NumOverlap <- c(summary_values$NumOverlap, length(which(GSEA$data$indicator == 1)))
+          # summary_values$NumOverlap <- c(summary_values$NumOverlap, length(which(GSEA$data$indicator == 1)))
           
-          if(GSEA$MES_value < 0){
-            summary_values$NumLeading <-c(summary_values$NumLeading, length(GSEA$data[GSEA$data$ranking <= GSEA$MES_rank,]$names))
+          if(GSEA$MES_value > 0){
+             summary_values$NumLeading <-c(summary_values$NumLeading, GSEA$MES_rank)
           } else{
-            summary_values$NumLeading <- c(summary_values$NumLeading, length(GSEA$data[GSEA$data$ranking >= GSEA$MES_rank,]$names))
+             summary_values$NumLeading <- c(summary_values$NumLeading, nrow(GSEA$data) - GSEA$MES_rank)
           }
-          
+        
           count_gene_set = count_gene_set + 1
           count_comparison = count_comparison + 1
           
@@ -896,11 +895,10 @@ server <- shinyServer(function(input, output, session) {
       d <- paste(strong("Col. 6: "), "Indicates the up-regulated class. Positive if enrichment in the left, and negative otherwise.")
       e <- paste(strong("Col. 7: "), "Gives the values of the Maximum Enrichment Score (MES). The MES value indicates the maximum deviance of the ES from 0.")
       f <- paste(strong("Col. 8: "), "Displays the rank were the MES is located.")
-      g <- paste(strong("Col. 9: "), "Total sum of genes that are present in both input files. Correspond to the number of lines vertically displayed in the plot.")
-      h <- paste(strong("Col. 10: "), "Total sum of genes that form the leading-edge subset. The leading-edge subset is defined by the MES.") 
-      i <- paste("If positive enrichement we will consider those genes before the MES, and if negative enrichment the genes after the MES will be considered.")
+      g <- paste(strong("Col. 10: "), "Total sum of genes that form the leading-edge subset. The leading-edge subset is defined by the MES.") 
+      h <- paste("If positive enrichement we will consider those genes before the MES, and if negative enrichment the genes after the MES will be considered.")
       
-      HTML(paste(a, b, c, d, f, g, h, i, sep = '<br/>'))
+      HTML(paste(a, b, c, d, f, g, h, sep = '<br/>'))
     })
     
     # Generates the button to download the leading_edge -> Creates a table (.csv) with the rank order and the gene symbols

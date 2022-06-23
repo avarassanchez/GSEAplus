@@ -933,7 +933,7 @@ server <- shinyServer(function(input, output, session) {
     # CREATES AN EMPTY FILE
     output$leading_edge <- downloadHandler(
       filename = function(){
-        paste("leading_edge.csv", sep = "")
+        paste("leading_edge.csv")
       },
       content = function(file){
         write.csv(x = leading_edge(), file = file)
@@ -972,15 +972,13 @@ server <- shinyServer(function(input, output, session) {
         dev.off()
       })
     
-    # Generates button to download the copied plot (Dashboard/Significance)
+    # Generates button to download the table with the statistical values (Dashboard/Significance)
     output$sig_table <- downloadHandler(
       filename = function(){
-        paste0("Table_significance.csv")
+        paste0("Table_significance.csv", sep = "")
       },
       content = function(file){
-        pdf(file)
         write.csv(x = important_statistics(), file = file, sep = "", col.names = TRUE)
-        dev.off()
       })
     
     # Generate button to download the null distribution (Dashboard/Significance)
@@ -1004,6 +1002,7 @@ server <- shinyServer(function(input, output, session) {
               plot.title = element_text(color = input$color_title1, face = "bold", hjust = 0.5))
           
           print(NULL_plot)
+          
         }
         dev.off()
       })
